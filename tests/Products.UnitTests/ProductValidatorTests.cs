@@ -1,0 +1,129 @@
+using FluentAssertions;
+using Products.Application.Dtos;
+using Products.Application.Validation;
+
+namespace Products.UnitTests;
+
+public class ProductValidatorTests
+{
+    private readonly CreateProductRequestValidator _createValidator = new();
+    private readonly UpdateProductRequestValidator _updateValidator = new();
+
+    [Fact]
+    public void Validate_WhenCreateRequestIsValid_ShouldPass()
+    {
+        // Arrange
+        var request = new CreateProductRequest("Product", "Desc", 9.99m, 10);
+
+        // Act
+        var result = _createValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Validate_WhenCreateNameIsMissing_ShouldFail(string? name)
+    {
+        // Arrange
+        var request = new CreateProductRequest(name!, null, 9.99m, 10);
+
+        // Act
+        var result = _createValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateProductRequest.Name));
+    }
+
+    [Fact]
+    public void Validate_WhenCreateNameIsTooLong_ShouldFail()
+    {
+        // Arrange
+        var request = new CreateProductRequest(new string('a', 201), null, 9.99m, 10);
+
+        // Act
+        var result = _createValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Validate_WhenCreatePriceIsNotPositive_ShouldFail(double price)
+    {
+        // Arrange
+        var request = new CreateProductRequest("Product", null, (decimal)price, 10);
+
+        // Act
+        var result = _createValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateProductRequest.Price));
+    }
+
+    [Fact]
+    public void Validate_WhenCreateStockIsNegative_ShouldFail()
+    {
+        // Arrange
+        var request = new CreateProductRequest("Product", null, 9.99m, -1);
+
+        // Act
+        var result = _createValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateProductRequest.Stock));
+    }
+
+    [Fact]
+    public void Validate_WhenCreateDescriptionIsTooLong_ShouldFail()
+    {
+        // Arrange
+        var request = new CreateProductRequest("Product", new string('d', 1001), 9.99m, 10);
+
+        // Act
+        var result = _createValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validate_WhenUpdateRequestIsValid_ShouldPass()
+    {
+        // Arrange
+        var request = new UpdateProductRequest("Product", null, 1m, 0);
+
+        // Act
+        var result = _updateValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_WhenUpdateRequestIsInvalid_ShouldCollectAllErrors()
+    {
+        // Arrange
+        var request = new UpdateProductRequest("", null, 0m, -5);
+
+        // Act
+        var result = _updateValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Select(e => e.PropertyName).Should()
+            .Contain([
+                nameof(UpdateProductRequest.Name),
+                nameof(UpdateProductRequest.Price),
+                nameof(UpdateProductRequest.Stock)
+            ]);
+    }
+}
