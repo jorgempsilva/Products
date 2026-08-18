@@ -10,6 +10,14 @@ using Products.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("ProductsDb")))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:ProductsDb is not configured. " +
+        "For local development set it via User Secrets (see README > Local credentials via User Secrets); " +
+        "in containers it is injected via the ConnectionStrings__ProductsDb environment variable.");
+}
+
 builder.Services.AddControllers(options => options.Filters.Add<FluentValidationFilter>());
 
 builder.Services.AddInfrastructure(builder.Configuration);
