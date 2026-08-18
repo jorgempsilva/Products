@@ -67,15 +67,38 @@ FluentValidation validators run through an MVC action filter, returning 400 Vali
 - `EnableRetryOnFailure` for transient fault resilience
 - Migrations + seeding applied automatically at startup in Development only
 
-### Integration tests use real SQL Server (LocalDB)
-The ID SEQUENCE and `ExecuteUpdateAsync` semantics are SQL Server features; an in-memory provider would not exercise the real behaviour. Each test run creates an isolated `ProductsDb_Tests_{guid}` database and drops it afterwards.
+### Integration tests use real SQL Server (LocalDB or container)
+The ID SEQUENCE and `ExecuteUpdateAsync` semantics are SQL Server features; an in-memory provider would not exercise the real behaviour. Each test run creates an isolated `ProductsDb_Tests_{guid}` database and drops it afterwards. By default LocalDB is used; set `TEST_DB_CONNECTION` to target any SQL Server (e.g., the containerized one).
 
 ## Prerequisites
 
 - .NET 10 SDK
-- SQL Server LocalDB (bundled with Visual Studio; verify with `sqllocaldb info MSSQLLocalDB`)
+- One of:
+  - Docker or Podman (recommended — runs SQL Server in a container), or
+  - SQL Server LocalDB (bundled with Visual Studio; verify with `sqllocaldb info MSSQLLocalDB`)
 
-## Running Locally
+## Running with Docker / Podman (recommended)
+
+The repo ships a multi-stage `Dockerfile` and a `compose.yaml` (standard Compose Specification — works with both Docker and Podman) that start SQL Server 2022 and the API together.
+
+```powershell
+cd ProductsApi
+Copy-Item .env.example .env   # then edit .env and set a strong MSSQL_SA_PASSWORD
+docker compose up --build     # or: podman compose up --build
+```
+
+- API: http://localhost:8080 (Swagger at `/swagger`)
+- SQL Server: `localhost,1433` (user `sa`, password from `.env`)
+- The API waits for the DB healthcheck, then applies migrations and seeds 6 sample products.
+- Data persists in the named volume `mssql-data`; remove everything with `docker compose down -v`.
+
+### Security notes
+
+- The API image runs as a **non-root user** (`$APP_UID` from the official .NET images); SQL Server 2022 also runs as the non-root `mssql` user.
+- The SA password is provided via environment variable from `.env`, which is **git-ignored** (only `.env.example` is committed).
+- **Podman** works with the same files and adds defense in depth: it is daemonless and can run fully **rootless**, so a container escape does not yield host root privileges.
+
+## Running Locally (without containers)
 
 ```powershell
 cd ProductsApi
@@ -84,7 +107,16 @@ dotnet run --project src/Products.Api
 
 On first run (Development) the database `ProductsDb` is created, migrated and seeded with 6 sample products automatically. Browse to the shown localhost URL + `/swagger`.
 
-Connection string lives in `src/Products.Api/appsettings.json` (`ConnectionStrings:ProductsDb`).
+### Local credentials via User Secrets
+
+`appsettings.json` deliberately contains **no credentials**. For local runs/debugging the connection string comes from .NET User Secrets (loaded only in Development, stored outside the repo). One-time setup:
+
+```powershell
+cd src/Products.Api
+dotnet user-secrets set "ConnectionStrings:ProductsDb" "Server=localhost,1433;Database=ProductsDb;User Id=sa;Password=<your .env password>;TrustServerCertificate=True;MultipleActiveResultSets=true"
+```
+
+Requires the DB container running (`docker compose up -d db`). To use LocalDB instead, set the LocalDB string documented in `appsettings.json`. In containers, compose injects the connection string via the `ConnectionStrings__ProductsDb` environment variable (env vars take precedence over user secrets).
 
 ### Managing migrations manually
 
@@ -99,8 +131,29 @@ dotnet ef migrations add <Name> --project src/Products.Infrastructure --startup-
 ```powershell
 dotnet test                                  # all 54 tests
 dotnet test tests/Products.UnitTests         # unit tests only (no DB needed)
-dotnet test tests/Products.IntegrationTests  # requires LocalDB
+dotnet test tests/Products.IntegrationTests  # requires LocalDB (default) or TEST_DB_CONNECTION
 ```
+
+### Running integration tests against the containerized SQL Server
+
+Integration tests use LocalDB by default. On machines without LocalDB (or to test against the container), set `TEST_DB_CONNECTION` — the test factory keeps the per-run isolated database name, only the server/credentials are taken from the variable:
+
+```powershell
+docker compose up -d db   # DB container only
+$env:TEST_DB_CONNECTION = "Server=localhost,1433;User Id=sa;Password=<your .env password>;TrustServerCertificate=True;MultipleActiveResultSets=true"
+dotnet test tests/Products.IntegrationTests
+Remove-Item Env:TEST_DB_CONNECTION
+```
+
+### Running tests fully in containers
+
+The compose file defines a `tests` service (behind the `test` profile, so a normal `up` never starts it). It builds the `test` stage of the Dockerfile and runs all 54 tests (unit + integration) inside the compose network against the `db` service:
+
+```powershell
+docker compose --profile test run --rm tests   # or: podman compose --profile test run --rm tests
+```
+
+No .NET SDK or LocalDB needed on the host — only the container runtime. Each run creates isolated `ProductsDb_Tests_{guid}` databases in the `db` container and drops them afterwards.
 
 ## Assumptions
 

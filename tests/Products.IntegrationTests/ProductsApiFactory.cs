@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Products.Infrastructure.Persistence;
@@ -10,8 +11,25 @@ public sealed class ProductsApiFactory : WebApplicationFactory<Program>, IAsyncL
 {
     private readonly string _databaseName = $"ProductsDb_Tests_{Guid.NewGuid():N}";
 
-    private string ConnectionString =>
-        $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+    private string ConnectionString
+    {
+        get
+        {
+            var baseConnection = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION");
+
+            if (string.IsNullOrWhiteSpace(baseConnection))
+            {
+                return $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            }
+
+            var builder = new SqlConnectionStringBuilder(baseConnection)
+            {
+                InitialCatalog = _databaseName
+            };
+
+            return builder.ConnectionString;
+        }
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
