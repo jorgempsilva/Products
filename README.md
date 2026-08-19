@@ -118,6 +118,12 @@ dotnet user-secrets set "ConnectionStrings:ProductsDb" "Server=localhost,1433;Da
 
 Requires the DB container running (`docker compose up -d db`). To use LocalDB instead, set the LocalDB string documented in `appsettings.json`. In containers, compose injects the connection string via the `ConnectionStrings__ProductsDb` environment variable (env vars take precedence over user secrets).
 
+> **Troubleshooting — connection timeout (`localhost` vs `127.0.0.1`):** If startup fails with a `SqlException` ("The server was not found or was not accessible ... timeout expired"), your machine is likely resolving `localhost` to IPv6 (`::1`) first, while the DB container only binds IPv4 (`127.0.0.1:1433`). Replace `localhost` with `127.0.0.1` in the connection string to force IPv4:
+>
+> ```powershell
+> dotnet user-secrets set "ConnectionStrings:ProductsDb" "Server=127.0.0.1,1433;Database=ProductsDb;User Id=sa;Password=<your .env password>;TrustServerCertificate=True;MultipleActiveResultSets=true"
+> ```
+
 ### Managing migrations manually
 
 ```powershell
