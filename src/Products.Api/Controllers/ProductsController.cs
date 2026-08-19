@@ -71,16 +71,8 @@ public sealed class ProductsController(IProductService productService) : Control
     [HttpGet("search")]
     [ProducesResponseType<IReadOnlyList<ProductResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Search([FromQuery] string? name, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
-            {
-                ["name"] = ["The 'name' query parameter is required."]
-            }));
-
-        return Ok(await _productService.SearchByNameAsync(name, cancellationToken));
-    }
+    public async Task<IActionResult> Search([FromQuery] SearchProductsRequest request, CancellationToken cancellationToken)
+        => Ok(await _productService.SearchByNameAsync(request.Name!, cancellationToken));
 
     [HttpGet("stock-level")]
     [ProducesResponseType<IReadOnlyList<ProductResponse>>(StatusCodes.Status200OK)]
