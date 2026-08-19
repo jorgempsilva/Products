@@ -13,15 +13,11 @@ public sealed class FluentValidationFilter(IServiceProvider serviceProvider) : I
         foreach (var argument in context.ActionArguments.Values)
         {
             if (argument is null)
-            {
                 continue;
-            }
 
             var validatorType = typeof(IValidator<>).MakeGenericType(argument.GetType());
             if (_serviceProvider.GetService(validatorType) is not IValidator validator)
-            {
                 continue;
-            }
 
             var validationResult = await validator.ValidateAsync(new ValidationContext<object>(argument));
             if (!validationResult.IsValid)

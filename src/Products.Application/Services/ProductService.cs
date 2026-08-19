@@ -52,9 +52,7 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
 
         var updated = await _repository.UpdateAsync(product, cancellationToken);
         if (!updated)
-        {
             throw new ProductNotFoundException(id);
-        }
 
         return ToResponse(product);
     }
@@ -63,9 +61,7 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
     {
         var deleted = await _repository.DeleteAsync(id, cancellationToken);
         if (!deleted)
-        {
             throw new ProductNotFoundException(id);
-        }
     }
 
     public async Task AddToStockAsync(int id, int quantity, CancellationToken cancellationToken = default)
@@ -74,9 +70,7 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
 
         var updated = await _repository.IncrementStockAsync(id, quantity, cancellationToken);
         if (!updated)
-        {
             throw new ProductNotFoundException(id);
-        }
     }
 
     public async Task DecrementStockAsync(int id, int quantity, CancellationToken cancellationToken = default)
@@ -85,15 +79,11 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
 
         var updated = await _repository.DecrementStockAsync(id, quantity, cancellationToken);
         if (updated)
-        {
             return;
-        }
 
         var exists = await _repository.ExistsAsync(id, cancellationToken);
         if (!exists)
-        {
             throw new ProductNotFoundException(id);
-        }
 
         throw new InsufficientStockException(id, quantity);
     }
@@ -107,10 +97,8 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
     public async Task<IReadOnlyList<ProductResponse>> GetByStockRangeAsync(int min, int max, CancellationToken cancellationToken = default)
     {
         if (min < 0 || max < 0 || min > max)
-        {
             throw new InvalidStockOperationException(
                 $"Invalid stock range: min ({min}) and max ({max}) must be non-negative and min must not exceed max.");
-        }
 
         var products = await _repository.GetByStockRangeAsync(min, max, cancellationToken);
         return products.Select(ToResponse).ToList();
@@ -119,9 +107,7 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
     private static void EnsurePositiveQuantity(int quantity)
     {
         if (quantity <= 0)
-        {
             throw new InvalidStockOperationException($"Quantity must be greater than zero, but was {quantity}.");
-        }
     }
 
     private static ProductResponse ToResponse(Product product) => new(

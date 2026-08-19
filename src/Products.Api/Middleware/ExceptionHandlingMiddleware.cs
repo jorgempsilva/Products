@@ -32,15 +32,11 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         };
 
         if (statusCode == StatusCodes.Status500InternalServerError)
-        {
             _logger.LogError(exception, "Unhandled exception processing {Method} {Path}",
                 context.Request.Method, context.Request.Path);
-        }
         else
-        {
             _logger.LogWarning("Domain exception ({ExceptionType}): {Message}",
                 exception.GetType().Name, exception.Message);
-        }
 
         var problemDetails = new ProblemDetails
         {

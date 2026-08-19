@@ -18,9 +18,7 @@ public sealed class ProductsApiFactory : WebApplicationFactory<Program>, IAsyncL
             var baseConnection = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION");
 
             if (string.IsNullOrWhiteSpace(baseConnection))
-            {
                 return $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
-            }
 
             var builder = new SqlConnectionStringBuilder(baseConnection)
             {
