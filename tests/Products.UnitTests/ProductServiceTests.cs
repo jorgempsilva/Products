@@ -108,6 +108,9 @@ public class ProductServiceTests
         result.Name.Should().Be("Updated");
         result.Price.Should().Be(20m);
         result.UpdatedAtUtc.Should().Be(FixedUtcNow);
+        await _repository.Received(1).UpdateAsync(
+            Arg.Is<Product>(p => p.Id == 100001 && p.Name == "Updated" && p.Price == 20m),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -147,6 +150,7 @@ public class ProductServiceTests
 
         // Assert
         await act.Should().NotThrowAsync();
+        await _repository.Received(1).DeleteAsync(100001, Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -185,6 +189,7 @@ public class ProductServiceTests
 
         // Assert
         await act.Should().NotThrowAsync();
+        await _repository.Received(1).IncrementStockAsync(100001, 5, Arg.Any<CancellationToken>());
     }
 
     [Theory]
