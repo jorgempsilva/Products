@@ -21,11 +21,23 @@ public sealed class ProductRepository(ProductsDbContext dbContext) : IProductRep
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<Product>> SearchByNameAsync(string name, CancellationToken cancellationToken = default)
-        => await _dbContext.Products
+    {
+        var pattern = $"%{EscapeLikePattern(name)}%";
+
+        return await _dbContext.Products
             .AsNoTracking()
-            .Where(p => EF.Functions.Like(p.Name, $"%{name}%"))
+            .Where(p => EF.Functions.Like(p.Name, pattern, LikeEscapeChar))
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
+    }
+
+    private const string LikeEscapeChar = "\\";
+
+    private static string EscapeLikePattern(string input) => input
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_")
+        .Replace("[", "\\[");
 
     public async Task<IReadOnlyList<Product>> GetByStockRangeAsync(int min, int max, CancellationToken cancellationToken = default)
         => await _dbContext.Products

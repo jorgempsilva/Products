@@ -8,6 +8,7 @@ public class ProductValidatorTests
 {
     private readonly CreateProductRequestValidator _createValidator = new();
     private readonly UpdateProductRequestValidator _updateValidator = new();
+    private readonly SearchProductsRequestValidator _searchValidator = new();
 
     [Fact]
     public void Validate_WhenCreateRequestIsValid_ShouldPass()
@@ -125,5 +126,49 @@ public class ProductValidatorTests
                 nameof(UpdateProductRequest.Price),
                 nameof(UpdateProductRequest.Stock)
             ]);
+    }
+
+    [Fact]
+    public void Validate_WhenSearchNameIsValid_ShouldPass()
+    {
+        // Arrange
+        var request = new SearchProductsRequest("mouse");
+
+        // Act
+        var result = _searchValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Validate_WhenSearchNameIsMissing_ShouldFail(string? name)
+    {
+        // Arrange
+        var request = new SearchProductsRequest(name);
+
+        // Act
+        var result = _searchValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(SearchProductsRequest.Name));
+    }
+
+    [Fact]
+    public void Validate_WhenSearchNameIsTooLong_ShouldFail()
+    {
+        // Arrange
+        var request = new SearchProductsRequest(new string('a', 101));
+
+        // Act
+        var result = _searchValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(SearchProductsRequest.Name));
     }
 }

@@ -266,6 +266,22 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task Search_WhenNameIsLikeWildcard_ShouldTreatItAsLiteralNotMatchAll()
+    {
+        // Arrange
+        var uniqueName = $"WildcardProbe {Guid.NewGuid():N}";
+        await CreateProductAsync(uniqueName);
+
+        // Act - "%" would match every product if LIKE wildcards were not escaped
+        var results = await _client.GetFromJsonAsync<List<ProductResponse>>(
+            "/api/products/search?name=%25");
+
+        // Assert - escaped, so it only matches names literally containing "%"
+        results.Should().NotBeNull();
+        results!.Should().NotContain(p => p.Name == uniqueName);
+    }
+
+    [Fact]
     public async Task StockLevel_WhenRangeIsValid_ShouldReturnOnlyProductsWithinRange()
     {
         // Arrange
