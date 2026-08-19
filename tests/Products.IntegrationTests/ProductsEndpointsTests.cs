@@ -22,15 +22,16 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
     public async Task GetAll_WhenProductsExist_ShouldReturnOkWithStockIncluded()
     {
         // Arrange
-        await CreateProductAsync();
+        var uniqueName = $"GetAll Product {Guid.NewGuid():N}";
+        var created = await CreateProductAsync(uniqueName, stock: 20);
 
         // Act
         var products = await _client.GetFromJsonAsync<List<ProductResponse>>("/api/products");
 
         // Assert
         products.Should().NotBeNull();
-        products.Should().NotBeEmpty();
-        products!.All(p => p.Stock >= 0).Should().BeTrue();
+        products!.Should().ContainSingle(p => p.Id == created.Id)
+            .Which.Stock.Should().Be(20);
     }
 
     [Fact]
@@ -132,6 +133,7 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
     }
 
     [Fact]
@@ -241,14 +243,16 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
     public async Task Search_WhenNameMatchesPartially_ShouldReturnMatchingProducts()
     {
         // Arrange
-        await CreateProductAsync("SuperWidget Deluxe");
+        var uniqueToken = Guid.NewGuid().ToString("N");
+        var uniqueName = $"SuperWidget {uniqueToken}";
+        await CreateProductAsync(uniqueName);
 
         // Act
-        var results = await _client.GetFromJsonAsync<List<ProductResponse>>("/api/products/search?name=widget");
+        var results = await _client.GetFromJsonAsync<List<ProductResponse>>($"/api/products/search?name={uniqueToken}");
 
         // Assert
         results.Should().NotBeNull();
-        results!.Should().Contain(p => p.Name == "SuperWidget Deluxe");
+        results!.Should().ContainSingle(p => p.Name == uniqueName);
     }
 
     [Fact]
@@ -265,17 +269,20 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
     public async Task StockLevel_WhenRangeIsValid_ShouldReturnOnlyProductsWithinRange()
     {
         // Arrange
-        await CreateProductAsync("Low Stock Item", stock: 2);
-        await CreateProductAsync("High Stock Item", stock: 500);
+        var lowStockName = $"Low Stock Item {Guid.NewGuid():N}";
+        var highStockName = $"High Stock Item {Guid.NewGuid():N}";
+        await CreateProductAsync(lowStockName, stock: 2);
+        await CreateProductAsync(highStockName, stock: 500);
 
         // Act
         var results = await _client.GetFromJsonAsync<List<ProductResponse>>("/api/products/stock-level?min=0&max=5");
 
         // Assert
         results.Should().NotBeNull();
-        results!.Should().Contain(p => p.Name == "Low Stock Item");
-        results.Should().NotContain(p => p.Name == "High Stock Item");
-        results.All(p => p.Stock is >= 0 and <= 5).Should().BeTrue();
+        results!.Should().ContainSingle(p => p.Name == lowStockName)
+            .Which.Stock.Should().Be(2);
+        results.Should().NotContain(p => p.Name == highStockName);
+        results.Should().OnlyContain(p => p.Stock >= 0 && p.Stock <= 5);
     }
 
     [Fact]
