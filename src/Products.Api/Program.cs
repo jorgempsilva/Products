@@ -38,8 +38,9 @@ if (app.Environment.IsDevelopment())
     // Apply migrations and seed initial data in Development only.
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ProductsDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(dbContext, app.Logger);
+    var cancellationToken = app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+    await dbContext.Database.MigrateAsync(cancellationToken);
+    await DbSeeder.SeedAsync(dbContext, app.Logger, cancellationToken);
 }
 
 app.UseHttpsRedirection();
