@@ -74,12 +74,10 @@ public sealed class ProductsController(IProductService productService) : Control
     public async Task<IActionResult> Search([FromQuery] string? name, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(name))
-        {
             return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
             {
                 ["name"] = ["The 'name' query parameter is required."]
             }));
-        }
 
         return Ok(await _productService.SearchByNameAsync(name, cancellationToken));
     }

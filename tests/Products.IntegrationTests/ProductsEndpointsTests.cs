@@ -159,8 +159,6 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // ---------- Stock operations ----------
-
     [Fact]
     public async Task DecrementStock_WhenStockIsSufficient_ShouldReturnOkAndUpdateStock()
     {
@@ -239,8 +237,6 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // ---------- Search & stock-level ----------
-
     [Fact]
     public async Task Search_WhenNameMatchesPartially_ShouldReturnMatchingProducts()
     {
@@ -291,8 +287,6 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
-
-    // ---------- Concurrency ----------
 
     [Fact]
     public async Task DecrementStock_WhenRequestsAreConcurrent_ShouldNeverOversell()
