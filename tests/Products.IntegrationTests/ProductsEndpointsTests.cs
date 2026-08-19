@@ -137,6 +137,22 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task Update_WhenBodyIsInvalid_ShouldReturnBadRequestWithValidationDetails()
+    {
+        // Arrange
+        var created = await CreateProductAsync("Valid Before Invalid Update");
+
+        // Act
+        var response = await _client.PutAsJsonAsync($"/api/products/{created.Id}",
+            new UpdateProductRequest("", null, -1m, -5));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        problem!.Errors.Keys.Should().Contain(["Name", "Price", "Stock"]);
+    }
+
+    [Fact]
     public async Task Delete_WhenProductExists_ShouldReturnNoContentAndRemoveProduct()
     {
         // Arrange
@@ -263,6 +279,21 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Search_WhenNoProductsMatch_ShouldReturnOkWithEmptyList()
+    {
+        // Arrange
+        var nonExistentToken = $"NoMatch_{Guid.NewGuid():N}";
+
+        // Act
+        var results = await _client.GetFromJsonAsync<List<ProductResponse>>(
+            $"/api/products/search?name={nonExistentToken}");
+
+        // Assert
+        results.Should().NotBeNull();
+        results!.Should().BeEmpty();
     }
 
     [Fact]
