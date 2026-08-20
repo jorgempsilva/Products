@@ -6,9 +6,9 @@ namespace Products.Infrastructure.Persistence;
 
 public static class DbSeeder
 {
-    public static async Task SeedAsync(ProductsDbContext dbContext, ILogger logger, CancellationToken cancellationToken = default)
+    public static async Task SeedAsync(ProductsDbContext dbContext, ILogger logger, TimeProvider timeProvider, CancellationToken cancellationToken = default)
     {
-        var seedProducts = GetSeedProducts();
+        var seedProducts = GetSeedProducts(timeProvider);
 
         var seedNames = seedProducts.Select(p => p.Name).ToList();
         var existingNames = await dbContext.Products
@@ -31,9 +31,9 @@ public static class DbSeeder
         logger.LogInformation("Seeded {Count} missing products.", missing.Count);
     }
 
-    private static List<Product> GetSeedProducts()
+    private static List<Product> GetSeedProducts(TimeProvider timeProvider)
     {
-        var utcNow = DateTime.UtcNow;
+        var utcNow = timeProvider.GetUtcNow().UtcDateTime;
 
         return
         [

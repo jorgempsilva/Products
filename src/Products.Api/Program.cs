@@ -39,8 +39,9 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ProductsDbContext>();
     var cancellationToken = app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+    var timeProvider = scope.ServiceProvider.GetRequiredService<TimeProvider>();
     await dbContext.Database.MigrateAsync(cancellationToken);
-    await DbSeeder.SeedAsync(dbContext, app.Logger, cancellationToken);
+    await DbSeeder.SeedAsync(dbContext, app.Logger, timeProvider, cancellationToken);
 }
 
 app.UseHttpsRedirection();
