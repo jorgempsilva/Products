@@ -47,7 +47,6 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
         product.Name = request.Name.Trim();
         product.Description = request.Description?.Trim();
         product.Price = request.Price;
-        product.Stock = request.Stock;
         product.UpdatedAtUtc = _timeProvider.GetUtcNow().UtcDateTime;
 
         var updated = await _repository.UpdateAsync(product, cancellationToken);

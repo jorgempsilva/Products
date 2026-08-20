@@ -16,8 +16,5 @@ public sealed class UpdateProductRequestValidator : AbstractValidator<UpdateProd
 
         RuleFor(x => x.Price)
             .GreaterThan(0).WithMessage("Price must be greater than zero.");
-
-        RuleFor(x => x.Stock)
-            .GreaterThanOrEqualTo(0).WithMessage("Stock must not be negative.");
     }
 }

@@ -101,7 +101,7 @@ public class ProductValidatorTests
     public void Validate_WhenUpdateRequestIsValid_ShouldPass()
     {
         // Arrange
-        var request = new UpdateProductRequest("Product", null, 1m, 0);
+        var request = new UpdateProductRequest("Product", null, 1m);
 
         // Act
         var result = _updateValidator.Validate(request);
@@ -114,7 +114,7 @@ public class ProductValidatorTests
     public void Validate_WhenUpdateRequestIsInvalid_ShouldCollectAllErrors()
     {
         // Arrange
-        var request = new UpdateProductRequest("", null, 0m, -5);
+        var request = new UpdateProductRequest("", null, 0m);
 
         // Act
         var result = _updateValidator.Validate(request);
@@ -124,8 +124,7 @@ public class ProductValidatorTests
         result.Errors.Select(e => e.PropertyName).Should()
             .Contain([
                 nameof(UpdateProductRequest.Name),
-                nameof(UpdateProductRequest.Price),
-                nameof(UpdateProductRequest.Stock)
+                nameof(UpdateProductRequest.Price)
             ]);
     }
 

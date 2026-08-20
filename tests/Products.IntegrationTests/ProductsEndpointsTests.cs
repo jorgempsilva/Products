@@ -153,14 +153,14 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
 
         // Act
         var response = await _client.PutAsJsonAsync($"/api/products/{created.Id}",
-            new UpdateProductRequest("After Update", "new desc", 99.99m, 7));
+            new UpdateProductRequest("After Update", "new desc", 99.99m));
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var updated = await response.Content.ReadFromJsonAsync<ProductResponse>();
         updated!.Name.Should().Be("After Update");
         updated.Price.Should().Be(99.99m);
-        updated.Stock.Should().Be(7);
+        updated.Stock.Should().Be(20);
         updated.UpdatedAtUtc.Should().NotBeNull();
     }
 
@@ -169,7 +169,7 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
     {
         // Act
         var response = await _client.PutAsJsonAsync("/api/products/999999",
-            new UpdateProductRequest("X", null, 1m, 1));
+            new UpdateProductRequest("X", null, 1m));
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -184,12 +184,12 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
 
         // Act
         var response = await _client.PutAsJsonAsync($"/api/products/{created.Id}",
-            new UpdateProductRequest("", null, -1m, -5));
+            new UpdateProductRequest("", null, -1m));
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
-        problem!.Errors.Keys.Should().Contain(["Name", "Price", "Stock"]);
+        problem!.Errors.Keys.Should().Contain(["Name", "Price"]);
     }
 
     [Fact]
