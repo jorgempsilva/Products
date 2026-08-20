@@ -8,6 +8,7 @@ public sealed class SearchProductsRequestValidator : AbstractValidator<SearchPro
     public SearchProductsRequestValidator()
     {
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("The 'name' query parameter is required.");
+            .NotEmpty().WithMessage("The 'name' query parameter is required.")
+            .MaximumLength(100).WithMessage("Name must not exceed 100 characters.");
     }
 }
