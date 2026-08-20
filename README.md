@@ -17,17 +17,38 @@ Dependency direction: Api -> Application <- Infrastructure, Application -> Domai
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| GET    | `/api/products` | List all products (stock included) |
+| GET    | `/api/products` | List all products, paginated (stock included) |
 | POST   | `/api/products` | Create a product (201 + Location header) |
 | GET    | `/api/products/{id}` | Get a product by id |
 | PUT    | `/api/products/{id}` | Update a product |
 | DELETE | `/api/products/{id}` | Delete a product (204) |
 | POST   | `/api/products/{id}/decrement-stock/{quantity}` | Atomically decrement stock |
 | POST   | `/api/products/{id}/add-to-stock/{quantity}` | Atomically increment stock |
-| GET    | `/api/products/search?name={name}` | Partial, case-insensitive name search |
-| GET    | `/api/products/stock-level?min={min}&max={max}` | Products within a stock range |
+| GET    | `/api/products/search?name={name}` | Partial, case-insensitive name search, paginated |
+| GET    | `/api/products/stock-level?min={min}&max={max}` | Products within a stock range, paginated |
 
 Swagger UI is available at `/swagger` in Development.
+
+### Pagination
+
+The collection endpoints (`GET /api/products`, `/search`, `/stock-level`) accept optional `page` and `pageSize` query parameters and return a paged envelope instead of a bare array:
+
+| Parameter | Default | Bounds |
+|-----------|---------|--------|
+| `page` | 1 | `>= 1` |
+| `pageSize` | 20 | `1..50` |
+
+Out-of-bounds values return 400 ValidationProblemDetails. The response shape is:
+
+```json
+{
+  "items": [ /* ProductResponse[] */ ],
+  "page": 1,
+  "pageSize": 20,
+  "totalCount": 42,
+  "totalPages": 3
+}
+```
 
 ## Key Architectural Decisions
 
@@ -58,7 +79,7 @@ There is no read-modify-write window, so concurrent decrements can never oversel
 All error responses use `application/problem+json`.
 
 ### Validation
-FluentValidation validators run through an MVC action filter, returning 400 ValidationProblemDetails with per-field errors. Rules: Name required/max 200 chars, Description max 1000 chars, Price > 0, Stock >= 0. Route/query invariants (positive quantities, valid min/max range) are enforced in the service.
+FluentValidation validators run through an MVC action filter, returning 400 ValidationProblemDetails with per-field errors. Rules: Name required/max 200 chars, Description max 1000 chars, Price > 0, Stock >= 0. Pagination parameters are validated with a shared rule (`page >= 1`, `1 <= pageSize <= 50`). Route/query invariants (positive quantities, valid min/max range) are enforced in the service.
 
 ### EF Core practices
 - `AsNoTracking` on all read queries
@@ -135,7 +156,7 @@ dotnet ef migrations add <Name> --project src/Products.Infrastructure --startup-
 ## Running Tests
 
 ```powershell
-dotnet test                                  # all 54 tests
+dotnet test                                  # all 72 tests
 dotnet test tests/Products.UnitTests         # unit tests only (no DB needed)
 dotnet test tests/Products.IntegrationTests  # requires LocalDB (default) or TEST_DB_CONNECTION
 ```
@@ -153,7 +174,7 @@ Remove-Item Env:TEST_DB_CONNECTION
 
 ### Running tests fully in containers
 
-The compose file defines a `tests` service (behind the `test` profile, so a normal `up` never starts it). It builds the `test` stage of the Dockerfile and runs all 54 tests (unit + integration) inside the compose network against the `db` service:
+The compose file defines a `tests` service (behind the `test` profile, so a normal `up` never starts it). It builds the `test` stage of the Dockerfile and runs all 72 tests (unit + integration) inside the compose network against the `db` service:
 
 ```powershell
 docker compose --profile test run --rm tests   # or: podman compose --profile test run --rm tests
@@ -166,4 +187,5 @@ No .NET SDK or LocalDB needed on the host — only the container runtime. Each r
 - Stock quantities in the increment/decrement endpoints must be positive integers (quantity <= 0 returns 400).
 - `stock-level` defaults: min=0, max=int.MaxValue; min > max or negative values return 400.
 - Name search requires a non-empty `name` query parameter (missing returns 400).
+- Collection endpoints are paginated: `page` defaults to 1 (`>= 1`), `pageSize` defaults to 20 (capped at 50); out-of-bounds values return 400.
 - Timestamps are UTC; `UpdatedAtUtc` is null until the first update.
