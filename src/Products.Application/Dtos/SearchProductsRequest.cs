@@ -1,3 +1,3 @@
 namespace Products.Application.Dtos;
 
-public sealed record SearchProductsRequest(string? Name);
+public sealed record SearchProductsRequest(string? Name) : PaginationRequest;

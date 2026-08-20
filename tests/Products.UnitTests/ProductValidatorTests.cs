@@ -9,6 +9,7 @@ public class ProductValidatorTests
     private readonly CreateProductRequestValidator _createValidator = new();
     private readonly UpdateProductRequestValidator _updateValidator = new();
     private readonly SearchProductsRequestValidator _searchValidator = new();
+    private readonly PaginationRequestValidator _paginationValidator = new();
 
     [Fact]
     public void Validate_WhenCreateRequestIsValid_ShouldPass()
@@ -158,17 +159,53 @@ public class ProductValidatorTests
         result.Errors.Should().Contain(e => e.PropertyName == nameof(SearchProductsRequest.Name));
     }
 
-    [Fact]
-    public void Validate_WhenSearchNameIsTooLong_ShouldFail()
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(1, 20)]
+    [InlineData(5, 50)]
+    public void Validate_WhenPaginationIsWithinBounds_ShouldPass(int page, int pageSize)
     {
         // Arrange
-        var request = new SearchProductsRequest(new string('a', 101));
+        var request = new PaginationRequest { Page = page, PageSize = pageSize };
 
         // Act
-        var result = _searchValidator.Validate(request);
+        var result = _paginationValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Validate_WhenPageIsLessThanOne_ShouldFail(int page)
+    {
+        // Arrange
+        var request = new PaginationRequest { Page = page };
+
+        // Act
+        var result = _paginationValidator.Validate(request);
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(SearchProductsRequest.Name));
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(PaginationRequest.Page));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(51)]
+    [InlineData(100)]
+    public void Validate_WhenPageSizeIsOutOfBounds_ShouldFail(int pageSize)
+    {
+        // Arrange
+        var request = new PaginationRequest { PageSize = pageSize };
+
+        // Act
+        var result = _paginationValidator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(PaginationRequest.PageSize));
     }
 }

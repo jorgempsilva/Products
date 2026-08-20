@@ -36,15 +36,16 @@ public class ProductServiceTests
     public async Task GetAll_WhenProductsExist_ShouldReturnMappedProductsWithStock()
     {
         // Arrange
-        _repository.GetAllAsync(Arg.Any<CancellationToken>())
-            .Returns([SampleProduct(stock: 42)]);
+        _repository.GetAllAsync(1, 20, Arg.Any<CancellationToken>())
+            .Returns((new[] { SampleProduct(stock: 42) }, 1));
 
         // Act
-        var result = await _sut.GetAllAsync();
+        var result = await _sut.GetAllAsync(1, 20);
 
         // Assert
-        result.Should().ContainSingle()
+        result.Items.Should().ContainSingle()
             .Which.Stock.Should().Be(42);
+        result.TotalCount.Should().Be(1);
     }
 
     [Fact]
@@ -250,15 +251,15 @@ public class ProductServiceTests
     public async Task SearchByName_WhenTermHasWhitespace_ShouldTrimSearchTerm()
     {
         // Arrange
-        _repository.SearchByNameAsync("mouse", Arg.Any<CancellationToken>())
-            .Returns([SampleProduct()]);
+        _repository.SearchByNameAsync("mouse", 1, 20, Arg.Any<CancellationToken>())
+            .Returns((new[] { SampleProduct() }, 1));
 
         // Act
-        var result = await _sut.SearchByNameAsync("  mouse  ");
+        var result = await _sut.SearchByNameAsync("  mouse  ", 1, 20);
 
         // Assert
-        result.Should().HaveCount(1);
-        await _repository.Received(1).SearchByNameAsync("mouse", Arg.Any<CancellationToken>());
+        result.Items.Should().HaveCount(1);
+        await _repository.Received(1).SearchByNameAsync("mouse", 1, 20, Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -268,7 +269,7 @@ public class ProductServiceTests
     public async Task GetByStockRange_WhenRangeIsInvalid_ShouldThrowInvalidStockOperation(int min, int max)
     {
         // Act
-        var act = () => _sut.GetByStockRangeAsync(min, max);
+        var act = () => _sut.GetByStockRangeAsync(min, max, 1, 20);
 
         // Assert
         await act.Should().ThrowAsync<InvalidStockOperationException>();
@@ -278,13 +279,13 @@ public class ProductServiceTests
     public async Task GetByStockRange_WhenRangeIsValid_ShouldReturnProducts()
     {
         // Arrange
-        _repository.GetByStockRangeAsync(0, 50, Arg.Any<CancellationToken>())
-            .Returns([SampleProduct(stock: 25)]);
+        _repository.GetByStockRangeAsync(0, 50, 1, 20, Arg.Any<CancellationToken>())
+            .Returns((new[] { SampleProduct(stock: 25) }, 1));
 
         // Act
-        var result = await _sut.GetByStockRangeAsync(0, 50);
+        var result = await _sut.GetByStockRangeAsync(0, 50, 1, 20);
 
         // Assert
-        result.Should().ContainSingle().Which.Stock.Should().Be(25);
+        result.Items.Should().ContainSingle().Which.Stock.Should().Be(25);
     }
 }
