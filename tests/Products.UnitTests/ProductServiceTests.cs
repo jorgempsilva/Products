@@ -103,14 +103,15 @@ public class ProductServiceTests
         _repository.UpdateAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>()).Returns(true);
 
         // Act
-        var result = await _sut.UpdateAsync(100001, new UpdateProductRequest("Updated", null, 20m, 3));
+        var result = await _sut.UpdateAsync(100001, new UpdateProductRequest("Updated", null, 20m));
 
         // Assert
         result.Name.Should().Be("Updated");
         result.Price.Should().Be(20m);
+        result.Stock.Should().Be(10);
         result.UpdatedAtUtc.Should().Be(FixedUtcNow);
         await _repository.Received(1).UpdateAsync(
-            Arg.Is<Product>(p => p.Id == 100001 && p.Name == "Updated" && p.Price == 20m),
+            Arg.Is<Product>(p => p.Id == 100001 && p.Name == "Updated" && p.Price == 20m && p.Stock == 10),
             Arg.Any<CancellationToken>());
     }
 
@@ -121,7 +122,7 @@ public class ProductServiceTests
         _repository.GetByIdAsync(1, Arg.Any<CancellationToken>()).Returns((Product?)null);
 
         // Act
-        var act = () => _sut.UpdateAsync(1, new UpdateProductRequest("X", null, 1m, 0));
+        var act = () => _sut.UpdateAsync(1, new UpdateProductRequest("X", null, 1m));
 
         // Assert
         await act.Should().ThrowAsync<ProductNotFoundException>();
