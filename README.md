@@ -8,10 +8,85 @@ RESTful API for managing products, built with ASP.NET Core (.NET 10), EF Core (c
 - `src/Products.Application` — DTOs, service interfaces/implementation, FluentValidation validators
 - `src/Products.Infrastructure` — EF Core DbContext, repository, migrations, seeding
 - `src/Products.Api` — controllers, exception middleware, DI composition root
-- `tests/Products.UnitTests` — xUnit + NSubstitute + FluentAssertions (33 tests)
-- `tests/Products.IntegrationTests` — WebApplicationFactory against LocalDB (21 tests)
+- `tests/Products.UnitTests` — xUnit + NSubstitute + FluentAssertions (46 tests)
+- `tests/Products.IntegrationTests` — WebApplicationFactory against LocalDB (26 tests)
 
 Dependency direction: Api -> Application <- Infrastructure, Application -> Domain. The Application layer defines `IProductRepository`; Infrastructure implements it. Controllers are thin — all business logic lives in `ProductService`.
+
+## Architecture & Request Flow
+
+### Layers (Clean Architecture)
+
+Dependencies always point inward — `Domain` has no dependencies, and both `Api` and `Infrastructure` depend on the `Application` abstractions.
+
+```mermaid
+flowchart LR
+    Client([HTTP Client]) --> Api
+
+    subgraph Api["Products.Api"]
+        Controller["ProductsController"]
+        Filter["FluentValidationFilter"]
+        Middleware["ExceptionHandlingMiddleware"]
+    end
+
+    subgraph Application["Products.Application"]
+        Service["ProductService"]
+        IRepo["IProductRepository"]
+        Validators["Validators / DTOs"]
+    end
+
+    subgraph Infrastructure["Products.Infrastructure"]
+        Repo["ProductRepository"]
+        DbContext["ProductsDbContext"]
+    end
+
+    subgraph Domain["Products.Domain"]
+        Entity["Product entity"]
+        Exceptions["Domain exceptions"]
+    end
+
+    Controller --> Service
+    Service --> IRepo
+    IRepo -. implemented by .-> Repo
+    Repo --> DbContext --> DB[(SQL Server)]
+
+    Service --> Entity
+    Service --> Exceptions
+    Repo --> Entity
+```
+
+### Request pipeline
+
+Every request flows through validation and centralized exception handling before reaching the database.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant M as ExceptionHandlingMiddleware
+    participant F as FluentValidationFilter
+    participant Ctrl as ProductsController
+    participant S as ProductService
+    participant R as ProductRepository
+    participant DB as SQL Server
+
+    C->>M: HTTP request
+    M->>F: forward (wrapped in try/catch)
+    F->>F: validate action arguments
+    alt invalid
+        F-->>C: 400 ValidationProblemDetails
+    else valid
+        F->>Ctrl: invoke action
+        Ctrl->>S: call service method
+        S->>R: query / persist
+        R->>DB: EF Core (AsNoTracking / ExecuteUpdate)
+        DB-->>R: rows
+        R-->>S: entities
+        S-->>Ctrl: DTO / PagedResult
+        Ctrl-->>C: 200 / 201 / 204
+    end
+
+    Note over M: Domain exceptions are caught here<br/>and mapped to ProblemDetails (RFC 7807)
+```
 
 ## Endpoints (9)
 
