@@ -268,3 +268,7 @@ No .NET SDK or LocalDB needed on the host — only the container runtime. Each r
 - Name search requires a non-empty `name` query parameter (missing returns 400).
 - Collection endpoints are paginated: `page` defaults to 1 (`>= 1`), `pageSize` defaults to 20 (capped at 50); out-of-bounds values return 400.
 - Timestamps are UTC; `UpdatedAtUtc` is null until the first update.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
