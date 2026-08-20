@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/jorgempsilva/Products/actions/workflows/codeql.yml/badge.svg)](https://github.com/jorgempsilva/Products/actions/workflows/codeql.yml)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 
-RESTful API for managing products, built with ASP.NET Core (.NET 10), EF Core (code-first) and SQL Server LocalDB, following Clean Architecture principles.
+RESTful API for managing products, built with ASP.NET Core (.NET 10), EF Core (code-first) and SQL Server LocalDB, following a layered architecture inspired by Clean Architecture (dependencies point inward toward the domain). The domain is intentionally kept lightweight for the scope of this API — business logic is orchestrated in the Application layer rather than in rich domain entities.
 
 ## Solution Structure
 
@@ -134,7 +134,7 @@ Out-of-bounds values return 400 ValidationProblemDetails. The response shape is:
 ### Unique 6-digit ID generation (distributed-safe)
 Product IDs come from a SQL Server SEQUENCE (`ProductIdSequence`, range 100000-999999, NO CYCLE), bound via `HasDefaultValueSql("NEXT VALUE FOR ProductIdSequence")`. The database allocates each number exactly once, so multiple application instances can never generate duplicates — no application-level coordination needed.
 
-Trade-off: the range holds 900,000 IDs. When exhausted, SQL Server raises an error (surfaced as `ProductIdExhaustedException`). This is an accepted operational limit imposed by the 6-digit requirement. Sequences may produce gaps (e.g. on rollback), which is harmless for identifiers.
+Trade-off: the range holds 900,000 IDs. When exhausted, SQL Server raises an error surfaced as a `500` (the sequence has no more values to allocate). This is an accepted operational limit imposed by the 6-digit requirement. Sequences may produce gaps (e.g. on rollback), which is harmless for identifiers.
 
 ### Concurrency-safe stock operations
 Stock changes use `ExecuteUpdateAsync` — a single atomic UPDATE where the availability check is part of the WHERE clause:
@@ -157,6 +157,8 @@ There is no read-modify-write window, so concurrent decrements can never oversel
 
 All error responses use `application/problem+json`.
 
+Insufficient stock returns `422 Unprocessable Entity` rather than `409 Conflict`: the request is syntactically valid and targets no concurrent-edit conflict — it is a well-formed instruction the server understands but cannot fulfil because a business rule (available stock) is violated. `409` is reserved for true state conflicts (e.g. optimistic-concurrency clashes), which this operation does not model.
+
 ### Validation
 FluentValidation validators run through an MVC action filter, returning 400 ValidationProblemDetails with per-field errors. Rules: Name required/max 200 chars, Description max 1000 chars, Price > 0, Stock >= 0 (on create). Pagination parameters are validated with a shared rule (`page >= 1`, `1 <= pageSize <= 50`). Route/query invariants (positive quantities, valid min/max range) are enforced in the service.
 
@@ -169,6 +171,8 @@ FluentValidation validators run through an MVC action filter, returning 400 Vali
 
 ### Integration tests use real SQL Server (LocalDB or container)
 The ID SEQUENCE and `ExecuteUpdateAsync` semantics are SQL Server features; an in-memory provider would not exercise the real behaviour. Each test run creates an isolated `ProductsDb_Tests_{guid}` database and drops it afterwards. By default LocalDB is used; set `TEST_DB_CONNECTION` to target any SQL Server (e.g., the containerized one).
+
+> LocalDB is Windows-only. On Linux/macOS (or CI), set `TEST_DB_CONNECTION` to a reachable SQL Server instance — for example the Docker container described below — otherwise the integration tests cannot connect.
 
 ## Prerequisites
 
