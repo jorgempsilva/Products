@@ -74,7 +74,7 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-
+    [Fact]
     public async Task Create_WhenRequestIsValid_ShouldReturnCreatedWithSixDigitIdAndLocationHeader()
     {
         // Arrange
