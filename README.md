@@ -1,5 +1,9 @@
 # Products API
 
+[![CI](https://github.com/jorgempsilva/Products/actions/workflows/ci.yml/badge.svg)](https://github.com/jorgempsilva/Products/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jorgempsilva/Products/actions/workflows/codeql.yml/badge.svg)](https://github.com/jorgempsilva/Products/actions/workflows/codeql.yml)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+
 RESTful API for managing products, built with ASP.NET Core (.NET 10), EF Core (code-first) and SQL Server LocalDB, following Clean Architecture principles.
 
 ## Solution Structure
