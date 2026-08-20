@@ -12,9 +12,10 @@ public sealed class ProductsController(IProductService productService) : Control
     private readonly IProductService _productService = productService;
 
     [HttpGet]
-    [ProducesResponseType<IReadOnlyList<ProductResponse>>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
-        => Ok(await _productService.GetAllAsync(cancellationToken));
+    [ProducesResponseType<PagedResult<ProductResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request, CancellationToken cancellationToken)
+        => Ok(await _productService.GetAllAsync(request.Page, request.PageSize, cancellationToken));
 
     [HttpGet("{id:int}")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
@@ -69,14 +70,14 @@ public sealed class ProductsController(IProductService productService) : Control
     }
 
     [HttpGet("search")]
-    [ProducesResponseType<IReadOnlyList<ProductResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PagedResult<ProductResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Search([FromQuery] SearchProductsRequest request, CancellationToken cancellationToken)
-        => Ok(await _productService.SearchByNameAsync(request.Name!, cancellationToken));
+        => Ok(await _productService.SearchByNameAsync(request.Name!, request.Page, request.PageSize, cancellationToken));
 
     [HttpGet("stock-level")]
-    [ProducesResponseType<IReadOnlyList<ProductResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PagedResult<ProductResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> StockLevel([FromQuery] int min = 0, [FromQuery] int max = int.MaxValue, CancellationToken cancellationToken = default)
-        => Ok(await _productService.GetByStockRangeAsync(min, max, cancellationToken));
+    public async Task<IActionResult> StockLevel([FromQuery] StockLevelRequest request, CancellationToken cancellationToken)
+        => Ok(await _productService.GetByStockRangeAsync(request.Min, request.Max, request.Page, request.PageSize, cancellationToken));
 }

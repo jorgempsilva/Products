@@ -4,13 +4,13 @@ namespace Products.Application.Abstractions;
 
 public interface IProductRepository
 {
-    Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<Product> Items, int TotalCount)> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default);
 
     Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Product>> SearchByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<Product> Items, int TotalCount)> SearchByNameAsync(string name, int page, int pageSize, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Product>> GetByStockRangeAsync(int min, int max, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<Product> Items, int TotalCount)> GetByStockRangeAsync(int min, int max, int page, int pageSize, CancellationToken cancellationToken = default);
 
     Task AddAsync(Product product, CancellationToken cancellationToken = default);
 

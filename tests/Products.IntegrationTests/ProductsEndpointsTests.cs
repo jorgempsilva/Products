@@ -26,15 +26,55 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         var created = await CreateProductAsync(uniqueName, stock: 20);
 
         // Act
-        var products = await _client.GetFromJsonAsync<List<ProductResponse>>("/api/products");
+        var products = await _client.GetFromJsonAsync<PagedResult<ProductResponse>>("/api/products");
 
         // Assert
         products.Should().NotBeNull();
-        products!.Should().ContainSingle(p => p.Id == created.Id)
+        products!.Items.Should().ContainSingle(p => p.Id == created.Id)
             .Which.Stock.Should().Be(20);
     }
 
     [Fact]
+    public async Task GetAll_WhenPageSizeIsProvided_ShouldReturnPagedMetadataAndRespectPageSize()
+    {
+        // Arrange
+        var token = Guid.NewGuid().ToString("N");
+        for (var i = 0; i < 3; i++)
+            await CreateProductAsync($"Paged {token} {i}", stock: 5);
+
+        // Act
+        var page = await _client.GetFromJsonAsync<PagedResult<ProductResponse>>("/api/products?page=1&pageSize=2");
+
+        // Assert
+        page.Should().NotBeNull();
+        page!.Page.Should().Be(1);
+        page.PageSize.Should().Be(2);
+        page.Items.Should().HaveCount(2);
+        page.TotalCount.Should().BeGreaterThanOrEqualTo(3);
+        page.TotalPages.Should().Be((int)Math.Ceiling(page.TotalCount / 2.0));
+    }
+
+    [Fact]
+    public async Task GetAll_WhenPageSizeExceedsMax_ShouldReturnBadRequest()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/products?pageSize=51");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetAll_WhenPageIsLessThanOne_ShouldReturnBadRequest()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/products?page=0");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+
     public async Task Create_WhenRequestIsValid_ShouldReturnCreatedWithSixDigitIdAndLocationHeader()
     {
         // Arrange
@@ -264,11 +304,11 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         await CreateProductAsync(uniqueName);
 
         // Act
-        var results = await _client.GetFromJsonAsync<List<ProductResponse>>($"/api/products/search?name={uniqueToken}");
+        var results = await _client.GetFromJsonAsync<PagedResult<ProductResponse>>($"/api/products/search?name={uniqueToken}");
 
         // Assert
         results.Should().NotBeNull();
-        results!.Should().ContainSingle(p => p.Name == uniqueName);
+        results!.Items.Should().ContainSingle(p => p.Name == uniqueName);
     }
 
     [Fact]
@@ -288,12 +328,12 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         var nonExistentToken = $"NoMatch_{Guid.NewGuid():N}";
 
         // Act
-        var results = await _client.GetFromJsonAsync<List<ProductResponse>>(
+        var results = await _client.GetFromJsonAsync<PagedResult<ProductResponse>>(
             $"/api/products/search?name={nonExistentToken}");
 
         // Assert
         results.Should().NotBeNull();
-        results!.Should().BeEmpty();
+        results!.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -303,13 +343,13 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         var uniqueName = $"WildcardProbe {Guid.NewGuid():N}";
         await CreateProductAsync(uniqueName);
 
-        // Act - "%" would match every product if LIKE wildcards were not escaped
-        var results = await _client.GetFromJsonAsync<List<ProductResponse>>(
+        // Act
+        var results = await _client.GetFromJsonAsync<PagedResult<ProductResponse>>(
             "/api/products/search?name=%25");
 
-        // Assert - escaped, so it only matches names literally containing "%"
+        // Assert
         results.Should().NotBeNull();
-        results!.Should().NotContain(p => p.Name == uniqueName);
+        results!.Items.Should().NotContain(p => p.Name == uniqueName);
     }
 
     [Fact]
@@ -322,14 +362,14 @@ public class ProductsEndpointsTests(ProductsApiFactory factory) : IClassFixture<
         await CreateProductAsync(highStockName, stock: 500);
 
         // Act
-        var results = await _client.GetFromJsonAsync<List<ProductResponse>>("/api/products/stock-level?min=0&max=5");
+        var results = await _client.GetFromJsonAsync<PagedResult<ProductResponse>>("/api/products/stock-level?min=0&max=5");
 
         // Assert
         results.Should().NotBeNull();
-        results!.Should().ContainSingle(p => p.Name == lowStockName)
+        results!.Items.Should().ContainSingle(p => p.Name == lowStockName)
             .Which.Stock.Should().Be(2);
-        results.Should().NotContain(p => p.Name == highStockName);
-        results.Should().OnlyContain(p => p.Stock >= 0 && p.Stock <= 5);
+        results.Items.Should().NotContain(p => p.Name == highStockName);
+        results.Items.Should().OnlyContain(p => p.Stock >= 0 && p.Stock <= 5);
     }
 
     [Fact]

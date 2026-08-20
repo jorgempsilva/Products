@@ -9,26 +9,44 @@ public sealed class ProductRepository(ProductsDbContext dbContext) : IProductRep
 {
     private readonly ProductsDbContext _dbContext = dbContext;
 
-    public async Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default)
-        => await _dbContext.Products
+    public async Task<(IReadOnlyList<Product> Items, int TotalCount)> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Products
             .AsNoTracking()
-            .OrderBy(p => p.Id)
+            .OrderBy(p => p.Id);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
 
     public Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         => _dbContext.Products
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-    public async Task<IReadOnlyList<Product>> SearchByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<(IReadOnlyList<Product> Items, int TotalCount)> SearchByNameAsync(string name, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var pattern = $"%{EscapeLikePattern(name)}%";
 
-        return await _dbContext.Products
+        var query = _dbContext.Products
             .AsNoTracking()
             .Where(p => EF.Functions.Like(p.Name, pattern, LikeEscapeChar))
-            .OrderBy(p => p.Name)
+            .OrderBy(p => p.Name);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
     }
 
     private const string LikeEscapeChar = "\\";
@@ -39,12 +57,22 @@ public sealed class ProductRepository(ProductsDbContext dbContext) : IProductRep
         .Replace("_", "\\_")
         .Replace("[", "\\[");
 
-    public async Task<IReadOnlyList<Product>> GetByStockRangeAsync(int min, int max, CancellationToken cancellationToken = default)
-        => await _dbContext.Products
+    public async Task<(IReadOnlyList<Product> Items, int TotalCount)> GetByStockRangeAsync(int min, int max, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Products
             .AsNoTracking()
             .Where(p => p.Stock >= min && p.Stock <= max)
-            .OrderBy(p => p.Stock)
+            .OrderBy(p => p.Stock);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
 
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {

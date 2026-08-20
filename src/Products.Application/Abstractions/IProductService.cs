@@ -4,7 +4,7 @@ namespace Products.Application.Abstractions;
 
 public interface IProductService
 {
-    Task<IReadOnlyList<ProductResponse>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductResponse>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default);
 
     Task<ProductResponse> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
@@ -18,7 +18,7 @@ public interface IProductService
 
     Task DecrementStockAsync(int id, int quantity, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<ProductResponse>> SearchByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductResponse>> SearchByNameAsync(string name, int page, int pageSize, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<ProductResponse>> GetByStockRangeAsync(int min, int max, CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductResponse>> GetByStockRangeAsync(int min, int max, int page, int pageSize, CancellationToken cancellationToken = default);
 }

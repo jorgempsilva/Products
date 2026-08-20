@@ -10,10 +10,10 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
     private readonly IProductRepository _repository = repository;
     private readonly TimeProvider _timeProvider = timeProvider;
 
-    public async Task<IReadOnlyList<ProductResponse>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductResponse>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var products = await _repository.GetAllAsync(cancellationToken);
-        return products.Select(ToResponse).ToList();
+        var (items, totalCount) = await _repository.GetAllAsync(page, pageSize, cancellationToken);
+        return ToPagedResult(items, page, pageSize, totalCount);
     }
 
     public async Task<ProductResponse> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -88,26 +88,37 @@ public sealed class ProductService(IProductRepository repository, TimeProvider t
         throw new InsufficientStockException(id, quantity);
     }
 
-    public async Task<IReadOnlyList<ProductResponse>> SearchByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductResponse>> SearchByNameAsync(string name, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var products = await _repository.SearchByNameAsync(name.Trim(), cancellationToken);
-        return products.Select(ToResponse).ToList();
+        var (items, totalCount) = await _repository.SearchByNameAsync(name.Trim(), page, pageSize, cancellationToken);
+        return ToPagedResult(items, page, pageSize, totalCount);
     }
 
-    public async Task<IReadOnlyList<ProductResponse>> GetByStockRangeAsync(int min, int max, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductResponse>> GetByStockRangeAsync(int min, int max, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         if (min < 0 || max < 0 || min > max)
             throw new InvalidStockOperationException(
                 $"Invalid stock range: min ({min}) and max ({max}) must be non-negative and min must not exceed max.");
 
-        var products = await _repository.GetByStockRangeAsync(min, max, cancellationToken);
-        return products.Select(ToResponse).ToList();
+        var (items, totalCount) = await _repository.GetByStockRangeAsync(min, max, page, pageSize, cancellationToken);
+        return ToPagedResult(items, page, pageSize, totalCount);
     }
 
     private static void EnsurePositiveQuantity(int quantity)
     {
         if (quantity <= 0)
             throw new InvalidStockOperationException($"Quantity must be greater than zero, but was {quantity}.");
+    }
+
+    private static PagedResult<ProductResponse> ToPagedResult(IReadOnlyList<Product> items, int page, int pageSize, int totalCount)
+    {
+        var totalPages = pageSize > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
+        return new PagedResult<ProductResponse>(
+            items.Select(ToResponse).ToList(),
+            page,
+            pageSize,
+            totalCount,
+            totalPages);
     }
 
     private static ProductResponse ToResponse(Product product) => new(
