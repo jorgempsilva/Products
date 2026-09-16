@@ -32,12 +32,11 @@ public sealed class ProductRepository(ProductsDbContext dbContext) : IProductRep
 
     public async Task<(IReadOnlyList<Product> Items, int TotalCount)> SearchByNameAsync(string name, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var pattern = $"%{EscapeLikePattern(name)}%";
-
         var query = _dbContext.Products
             .AsNoTracking()
-            .Where(p => EF.Functions.Like(p.Name, pattern, LikeEscapeChar))
-            .OrderBy(p => p.Name);
+            .Where(p => p.Name.Contains(name))
+            .OrderBy(p => p.Name)
+            .ThenBy(p => p.Id);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -48,14 +47,6 @@ public sealed class ProductRepository(ProductsDbContext dbContext) : IProductRep
 
         return (items, totalCount);
     }
-
-    private const string LikeEscapeChar = "\\";
-
-    private static string EscapeLikePattern(string input) => input
-        .Replace("\\", "\\\\")
-        .Replace("%", "\\%")
-        .Replace("_", "\\_")
-        .Replace("[", "\\[");
 
     public async Task<(IReadOnlyList<Product> Items, int TotalCount)> GetByStockRangeAsync(int min, int max, int page, int pageSize, CancellationToken cancellationToken = default)
     {
