@@ -13,14 +13,14 @@ jobs:
 
     services:
       sqlserver:
-        image: mcr.microsoft.com/mssql/server:2022-latest
+        image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
         env:
           ACCEPT_EULA: "Y"
-          MSSQL_SA_PASSWORD: "Your_Strong!Passw0rd"
+          MSSQL_SA_PASSWORD: ${{ secrets.SQL_SA_PASSWORD }}
         ports:
           - 1433:1433
         options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Your_Strong!Passw0rd -Q 'SELECT 1'"
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P ${{ secrets.SQL_SA_PASSWORD }} -Q 'SELECT 1'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
