@@ -16,7 +16,7 @@ jobs:
         image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
         env:
           ACCEPT_EULA: "Y"
-          MSSQL_SA_PASSWORD: ${{ secrets.SQL_SA_PASSWORD }}
+          MSSQL_SA_PASSWORD: "${{ env.CI_SQL_SA_PASSWORD }}"
         ports:
           - 1433:1433
         options: >-
@@ -30,7 +30,8 @@ jobs:
       DOTNET_NOLOGO: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
-      TEST_DB_CONNECTION: "Server=localhost,1433;User Id=sa;Password=${{ secrets.SQL_SA_PASSWORD }};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      CI_SQL_SA_PASSWORD: "Products_CI_SA_Passw0rd!"
+      TEST_DB_CONNECTION: "Server=localhost,1433;User Id=sa;Password=${{ env.CI_SQL_SA_PASSWORD }};TrustServerCertificate=True;MultipleActiveResultSets=true"
 
     steps:
       - name: Checkout
