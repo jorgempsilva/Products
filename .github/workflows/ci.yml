@@ -16,7 +16,7 @@ jobs:
         image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
         env:
           ACCEPT_EULA: "Y"
-          MSSQL_SA_PASSWORD: ${{ secrets.SQL_SA_PASSWORD }}
+          MSSQL_SA_PASSWORD: "${{ secrets.SQL_SA_PASSWORD }}"
         ports:
           - 1433:1433
         options: >-
