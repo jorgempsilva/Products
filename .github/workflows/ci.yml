@@ -20,9 +20,9 @@ jobs:
         ports:
           - 1433:1433
         options: >-
-          --health-cmd 'SQLCMD=/opt/mssql-tools18/bin/sqlcmd;
-          [ -x "$SQLCMD" ] || SQLCMD=/opt/mssql-tools/bin/sqlcmd;
-          "$SQLCMD" -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b'
+          --health-cmd "SQLCMD=/opt/mssql-tools18/bin/sqlcmd;
+          [ -x \"$SQLCMD\" ] || SQLCMD=/opt/mssql-tools/bin/sqlcmd;
+          \"$SQLCMD\" -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b"
           --health-interval 10s
           --health-timeout 10s
           --health-retries 20
